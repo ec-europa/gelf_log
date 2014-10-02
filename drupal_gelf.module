@@ -1,0 +1,78 @@
+<?php
+
+/* watchdog hook */
+function drupal_gelf_watchdog(array $error) {
+	$host = variable_get('drupal_gelf_host', 'localhost');
+	$port = variable_get('drupal_gelf_port', '12201');
+	$errorPacket = drupal_gelf_format_error($error);
+	drupal_gelf_send_packet($host,$port,$errorPacket);
+}
+
+/* Should be self explainatory will do later : */
+function drupal_gelf_help($path) {
+	return "Nothing to see right now";
+}
+
+// format an array with messages according GELF specs
+
+function drupal_gelf_format_error(array $error) {
+	//move all drupal stuff in _ (additionals for gelf)
+  foreach($error as $error_key => $error_value) {
+		unset($error[$error_key]);
+		$error['_'.$error_key] = $error_value;
+	}
+	//merge a formated GELF error + drupal error
+	return array_merge(
+		array(
+		'version' => '1.1',
+		'host' => gethostname(),
+		'short_message' => $error['_message'],
+		'level' => $error['_severity'],
+		'timestamp' => time()
+		),
+		$error
+	);
+}
+
+// generate an $max bytes unique BINARY string :
+function drupal_gelf_get_unique_id($max) {
+	$bytes = '';
+	while(strlen($bytes) < $max) {
+		$bytes .= chr(mt_rand(0,255));
+	}
+	return $bytes;
+}
+
+//Process the packet, chunk it and sends it
+function drupal_gelf_send_packet($host,$port,array $error_event) {
+	$packet = gzcompress(json_encode($error_event));
+	$chunks = str_split($packet,512); //512 is a safe value
+	$total_chunks = count($chunks);
+	$uniqid = drupal_gelf_get_unique_id(8);
+	$socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+	foreach($chunks as $index => $chunk) {
+    //create UDP packet according GELF specs :
+		$udpPacket =  implode('', array("\x1e\x0f" , $uniqid , chr($index) , chr($total_chunks) ,$chunk));
+		socket_sendto($socket, $udpPacket, strlen($udpPacket), 0, $host, $port);
+	}
+	socket_close($socket);
+}
+
+// Some settings for the backend 
+function drupal_gelf_form_system_logging_settings_alter(&$form, &$form_state) {
+  $help = module_exists('help') ? ' ' . l(t('More information'), 'admin/help/drupal_gelf') . '.' : NULL;
+  $form['drupal_gelf_host'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Remote GELF receiver'),
+    '#default_value' => variable_get('drupal_gelf_host', 'localhost'),
+    '#description' => t('Hostname or IP address of your Logstash/Graylog2 server.') . $help,
+  );
+  $form['drupal_gelf_port'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Remote GELF receiver PORT'),
+    '#default_value' => variable_get('drupal_gelf_port', '12201'),
+    '#description' => t('Port on which your Logstash/Graylog2 instance is listening') . $help,
+  );
+
+  $form['actions']['#weight'] = 1;
+}
