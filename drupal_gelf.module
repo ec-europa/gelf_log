@@ -21,6 +21,8 @@ function drupal_gelf_format_error(array $error) {
 		unset($error[$error_key]);
 		$error['_'.$error_key] = $error_value;
 	}
+  $error['_application'] = 'drupal_gelf';
+  $error['_website'] =  variable_get('site_name','localhost');
 	//merge a formated GELF error + drupal error
 	return array_merge(
 		array(
@@ -58,7 +60,7 @@ function drupal_gelf_send_packet($host,$port,array $error_event) {
 	socket_close($socket);
 }
 
-// Some settings for the backend 
+// Some settings for the backend
 function drupal_gelf_form_system_logging_settings_alter(&$form, &$form_state) {
   $help = module_exists('help') ? ' ' . l(t('More information'), 'admin/help/drupal_gelf') . '.' : NULL;
   $form['drupal_gelf_host'] = array(
