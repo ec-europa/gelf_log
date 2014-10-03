@@ -11,10 +11,7 @@ function drupal_gelf_watchdog(array $error) {
 	drupal_gelf_send_packet($host,$port,$errorPacket);
 }
 
-/* Should be self explainatory will do later : */
-function drupal_gelf_help($path) {
-	return "Nothing to see right now";
-}
+
 
 // format an array with messages according GELF specs
 
@@ -70,23 +67,4 @@ function drupal_gelf_send_packet($host,$port,array $error_event) {
 		socket_sendto($socket, $udpPacket, strlen($udpPacket), 0, $host, $port);
 	}
 	socket_close($socket);
-}
-
-// Some settings for the backend
-function drupal_gelf_form_system_logging_settings_alter(&$form, &$form_state) {
-  $help = module_exists('help') ? ' ' . l(t('More information'), 'admin/help/drupal_gelf') . '.' : NULL;
-  $form['drupal_gelf_host'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Remote GELF receiver'),
-    '#default_value' => variable_get('drupal_gelf_host', 'localhost'),
-    '#description' => t('Hostname or IP address of your Logstash/Graylog2 server.') . $help,
-  );
-  $form['drupal_gelf_port'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Remote GELF receiver PORT'),
-    '#default_value' => variable_get('drupal_gelf_port', '12201'),
-    '#description' => t('Port on which your Logstash/Graylog2 instance is listening') . $help,
-  );
-
-  $form['actions']['#weight'] = 1;
 }
