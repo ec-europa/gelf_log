@@ -24,6 +24,14 @@ function drupal_gelf_format_error(array $error) {
 		unset($error[$error_key]);
 		$error['_'.$error_key] = $error_value;
 	}
+	if(isset($error['_variables']) &&
+	   is_array($error['_variables']) && 
+	   !empty($error['_variables'])) {
+	   $error['_message'] = str_replace(array_keys($error['_variables']), array_values($error['_variables']),$error['_message']);
+	   foreach($error['_variables'] as $key => $variable) {
+	   	$error['_'.str_replace('%','drupal_',$key)] = $variable;
+	   }
+	}
   	$error['_application'] = 'drupal_gelf';
   	$error['_website'] =  variable_get('site_name','localhost');
 	//merge a formated GELF error + drupal error
@@ -39,6 +47,7 @@ function drupal_gelf_format_error(array $error) {
 		$error
 	);
 }
+
 
 // generate an $max bytes unique BINARY string :
 function drupal_gelf_get_unique_id($max) {
