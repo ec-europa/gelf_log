@@ -1,5 +1,5 @@
 name = Drupal GELF
 description = UDP logging module for GELF, working with Graylog2 and Logstash
-version = 6.x-0.x
+version = 6.x-1.x
 core = 6.x
 configure = admin/config/development/logging
