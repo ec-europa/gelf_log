@@ -101,7 +101,7 @@ function drupal_gelf_form_system_logging_settings_alter(&$form, &$form_state) {
   $form['drupal_gelf_group'] = array(
     '#type' => 'textfield',
     '#title' => t('Remote GELF receiver GROUP'),
-    '#default_value' => variable_get('drupal_gelf_port', '12201'),
+    '#default_value' => variable_get('drupal_gelf_group', 'global'),
     '#description' => t('Sets a log_group variable to filter on in Logstash/Graylog2') . $help,
   );
   $form['actions']['#weight'] = 1;
