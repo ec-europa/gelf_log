@@ -33,6 +33,8 @@ function drupal_gelf_format_error(array $error) {
 	   }
 	}
   	$error['_application'] = 'drupal_gelf';
+  	
+	$error['_log_group'] = variable_get('drupal_gelf_group', 'global');
   	$error['_website'] =  variable_get('site_name','localhost');
 	//merge a formated GELF error + drupal error
 	return array_merge(
@@ -96,6 +98,11 @@ function drupal_gelf_form_system_logging_settings_alter(&$form, &$form_state) {
     '#default_value' => variable_get('drupal_gelf_port', '12201'),
     '#description' => t('Port on which your Logstash/Graylog2 instance is listening') . $help,
   );
-
+  $form['drupal_gelf_group'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Remote GELF receiver GROUP'),
+    '#default_value' => variable_get('drupal_gelf_port', '12201'),
+    '#description' => t('Sets a log_group variable to filter on in Logstash/Graylog2') . $help,
+  );
   $form['actions']['#weight'] = 1;
 }
