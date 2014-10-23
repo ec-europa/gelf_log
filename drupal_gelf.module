@@ -13,7 +13,14 @@ function drupal_gelf_watchdog(array $error) {
 
 /* Should be self explainatory will do later : */
 function drupal_gelf_help($path) {
-	return "Nothing to see right now";
+	$message = "<h2>GELF loggin enabled</h2>";
+	$message .= "<p>GELF Logging is enabled and configured by your infrastructure team.</p>";
+	$message .= "<pre>";
+	$message .= "Host  : ".variable_get('drupal_gelf_host', 'localhost').PHP_EOL;
+	$message .= "Port  : ".variable_get('drupal_gelf_port', '12345').PHP_EOL;
+	$message .= "Group : ".variable_get('drupal_gelf_group', 'global').PHP_EOL;
+	$message .= "</pre>";
+	return $message;
 }
 
 // format an array with messages according GELF specs
