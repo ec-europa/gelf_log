@@ -13,7 +13,7 @@ function drupal_gelf_watchdog(array $error) {
 
 /* Should be self explainatory will do later : */
 function drupal_gelf_help($path) {
-	$message = "<h2>GELF loggin enabled</h2>";
+	$message = "<h3>GELF logging enabled</h3>";
 	$message .= "<p>GELF Logging is enabled and configured by your infrastructure team.</p>";
 	$message .= "<pre>";
 	$message .= "Host  : ".variable_get('drupal_gelf_host', 'localhost').PHP_EOL;
