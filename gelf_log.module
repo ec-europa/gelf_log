@@ -1,0 +1,114 @@
+<?php
+
+function gelf_log_menu() {
+
+    $items = array();
+
+    $items['admin/config/system/gelf_log'] = array(
+        'title' => 'GELF log',
+        'description' => 'Manage GELF log settings, including destination server and port',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gelf_log_admin'),
+        'access arguments' => array('administer gelf_log settings'),
+        'type' => MENU_NORMAL_ITEM,
+    );
+
+    return $items;
+}
+
+function gelf_log_admin() {
+    $form = array();
+
+    $form['gelf_log_host'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Logging server hostname or IP'),
+        '#default_value' => variable_get('gelf_log_host', '127.0.0.1'),
+        '#size' => 10,
+        '#maxlength' => 50,
+        '#description' => t("The logging packets will be sent to this server"),
+        '#required' => TRUE,
+    );
+
+    $form['gelf_log_port'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Logging server UDP port'),
+        '#default_value' => variable_get('gelf_log_port', 12345),
+        '#size' => 5,
+        '#maxlength' => 5,
+        '#description' => t("The logging packets will be sent on this port"),
+        '#required' => TRUE,
+    );
+
+    return system_settings_form($form);
+}
+/* watchdog hooking */
+function gelf_log_watchdog(array $error) {
+	/* get the config from drupal */
+	$host = variable_get('gelf_log_host', '127.0.0.1');
+	$port = variable_get('gelf_log_port', '12345');
+	/* format the packet from drupal error format */
+	$errorPacket = gelf_log_format_error($error);
+	/* chunk and send the GELF UDP packet */
+	gelf_log_send_packet($host,$port,$errorPacket);
+}
+
+function gelf_log_format_error(array $error) {
+    if(isset($error['message']) && is_array($error['variables'])) {
+        $message = strip_tags(format_string($error['message'], $error['variables']));
+    } elseif(isset($error['message'])) {
+        $message = $error['type'].' '.$error['message'];
+    }
+    foreach($error as $error_key => $error_value) {
+        unset($error[$error_key]);
+        if(in_array($error_key,array('user','variables','message'))) continue;
+        $error['_'.$error_key] = $error_value;
+    }
+    $error['_application'] = 'drupal_gelf_log';
+    $error['_website'] =  variable_get('site_name','localhost');
+	return array_merge(
+		array(
+		/* GELF required fields : */
+		'version' => '1.1',
+		'host' => gethostname(),
+		'short_message' => $message,
+		'level' => $error['_severity'],
+		'timestamp' => time()
+		),
+		$error
+	);
+}
+
+
+// generate an $max bytes unique BINARY string :
+function gelf_log_get_unique_id($max) {
+	$bytes = '';
+	/* while not enough random bytes */
+	while(strlen($bytes) < $max) {
+		/* add one */
+		$bytes .= chr(mt_rand(0,255));
+	}
+	/* and return the payload */
+	return $bytes;
+}
+
+//Process the packet, chunk it and sends it
+function gelf_log_send_packet($host,$port,array $error_event) {
+	/* JSONify and compress the packet */
+	$packet = gzcompress(
+        json_encode($error_event)
+    );
+	/* split it in max 512 bytes chunks, 512 will avoid packet getting drop on low MTUs */
+	$chunks = str_split($packet,512); //512 is a safe value
+	$total_chunks = count($chunks);
+	$uniqid = gelf_log_get_unique_id(8);
+	/* open a UDP sending socket */
+	$socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+	/* and send packets 1 by 1, there's no support for non-chunked packet, who cares ? */
+	foreach($chunks as $index => $chunk) {
+    		//create UDP packet according GELF specs :
+		$udpPacket =  implode('', array("\x1e\x0f" , $uniqid , chr($index) , chr($total_chunks) ,$chunk));
+		//and send it :
+		socket_sendto($socket, $udpPacket, strlen($udpPacket), 0, $host, $port);
+	}
+	socket_close($socket);
+}
