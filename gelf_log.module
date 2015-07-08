@@ -274,3 +274,17 @@ function gelf_log_send_packet($host, $port, array $error_event, $mtu) {
   }
   socket_close($socket);
 }
+
+/**
+* Implements hook_permission().
+*/
+
+function gelf_log_permission() {
+  return array(
+    'administer gelf_log settings' => array(
+      'title' => t('Adminster gelf log'),
+      'description' => t('Set the connection settings for the gelf logger.')
+    )
+  );
+}
+
