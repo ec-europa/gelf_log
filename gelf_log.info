@@ -1,5 +1,6 @@
 name = GELF Log
 description = Non-blocking logging using the GELF protocol, works with Graylog2 and Logstash/Kibana
-core = 7.x
+core = 6.x
+
 package = System
 configure = admin/config/system/gelf_log

@@ -21,7 +21,7 @@ define('GELF_LOG_DEFAULT_MTU', 512);
 function gelf_log_menu() {
   $items = array();
 
-  $items['admin/config/system/gelf_log'] = array(
+  $items['admin/settings/gelf_log'] = array(
     'title' => 'GELF log',
     'description' => 'Manage GELF log settings, including destination server and port.',
     'page callback' => 'drupal_get_form',
@@ -33,6 +33,12 @@ function gelf_log_menu() {
   return $items;
 }
 
+/**
+ * Implements hook_perm().
+ */
+function gelf_log_perm() {
+  return array('administer gelf_log settings');
+}
 /**
  * Form constructor for the administration form.
  *
@@ -98,6 +104,33 @@ function gelf_log_watchdog(array $error) {
 }
 
 /**
+ * Formats a string for HTML display by replacing variable placeholders.
+ *
+ * Backport of the D7 core function format_string.
+ */
+function gelf_log_format_string($string, array $args = array()) {
+  // Transform arguments before inserting them.
+  foreach ($args as $key => $value) {
+    switch ($key [0]) {
+      case '@':
+        // Escaped only.
+        $args [$key] = check_plain($value);
+        break;
+
+      case '%':
+      default:
+        // Escaped and placeholder.
+        $args [$key] = '<em class="placeholder">' . check_plain($value) . '</em>';
+        break;
+
+      case '!':
+        // Pass-through.
+    }
+  }
+  return strtr($string, $args);
+}
+
+/**
  * Formats the error to send.
  *
  * @param array $error
@@ -137,7 +170,7 @@ function gelf_log_format_error(array $error) {
   // If Drupal sets a messages and its variables, final message is
   // message+variables.
   if (isset($error['message']) && is_array($error['variables'])) {
-    $message = strip_tags(format_string($error['message'], $error['variables']));
+    $message = strip_tags(gelf_log_format_string($error['message'], $error['variables']));
     // Else if Drupal sets a messages and no variable, final message is message.
   }
   elseif (isset($error['message'])) {
@@ -159,7 +192,7 @@ function gelf_log_format_error(array $error) {
   }
 
   $error['_application'] = 'drupal_gelf_log';
-  $error['_website'] = variable_get('site_name');
+  $error['_website'] = variable_get('site_name', 'Drupal');
   $error['_group'] = variable_get('gelf_log_group', GELF_LOG_DEFAULT_GROUP);
 
   return array_merge(
@@ -273,18 +306,5 @@ function gelf_log_send_packet($host, $port, array $error_event, $mtu) {
     // Note, no error to catch here, if it fails we can't do anything anyway.
   }
   socket_close($socket);
-}
-
-/**
-* Implements hook_permission().
-*/
-
-function gelf_log_permission() {
-  return array(
-    'administer gelf_log settings' => array(
-      'title' => t('Adminster gelf log'),
-      'description' => t('Set the connection settings for the gelf logger.')
-    )
-  );
 }
 
