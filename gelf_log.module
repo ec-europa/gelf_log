@@ -162,6 +162,14 @@ function gelf_log_format_error(array $error) {
   $error['_website'] = variable_get('site_name');
   $error['_group'] = variable_get('gelf_log_group', GELF_LOG_DEFAULT_GROUP);
 
+  if (! empty(variagle_get("gelf_log_fields", array()) {
+    foreach (variagle_get("gelf_log_fields", array())  as $key => $value) {
+    if (isarray($value)){
+      $error[$key] = call_user_func_array ( $value['function'] , $value['args'] );
+    }else{
+      $error[$key] = $value;
+    }
+   
   return array_merge(
     array(
     // GELF required fields.
